@@ -28,3 +28,42 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -H 'Content-Type: application/json' \
             -d '{"chat_id":-1004359830446,"message_thread_id":7,"text":"🔴 genvidpro.com не отвечает, код ${{ steps.probe.outputs.code }}. Проверь Cloudflare Pages.\n\nжду твоего слова"}'
+
+      - name: Confirm on manual run
+        if: github.event_name == 'workflow_dispatch' && steps.probe.outputs.code == '200'
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            -H 'Content-Type: application/json' \
+            -d '{"chat_id":-1004359830446,"message_thread_id":7,"text":"🟢 Робот GitHub на связи. Сайт отвечает 200. Дальше проверяю каждые 20 минут сам, компьютер для этого не нужен."}'
+name: site-watch
+
+# Pings the live site every 20 minutes from GitHub's own servers.
+# If it stops answering, a red alert lands in the Telegram control room.
+# Runs whether or not any computer of mine is awake.
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe genvidpro.com
+        id: probe
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 https://genvidpro.com/ || echo 000)
+          echo "code=$code" >> $GITHUB_OUTPUT
+          echo "Site answered $code"
+
+      - name: Alert Telegram if the site is down
+        if: steps.probe.outputs.code != '200'
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            -H 'Content-Type: application/json' \
+            -d '{"chat_id":-1004359830446,"message_thread_id":7,"text":"🔴 genvidpro.com не отвечает, код ${{ steps.probe.outputs.code }}. Проверь Cloudflare Pages.\n\nжду твоего слова"}'
