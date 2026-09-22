@@ -1,82 +1,122 @@
 # Roma OS
 
+A one-person operations system. Everything runs on my own server, around the clock.
+Telegram is the only control surface — including voice. My laptop is not part of the loop.
 
-A one person operations room. Scheduled agents watch every place where paid work appears, filter the noise, and push what is real into a single Telegram control room with a ready reply already written.
+**Status:** in daily use since September 2026.
 
+---
 
-## The problem it solves
+## What it is
 
+I run AI video production and small web products alone. The work arrives from many places
+at once — marketplaces, email, the website, WhatsApp — and it used to arrive as noise.
+Roma OS turns that into one conversation: I speak into Telegram, the server does the work,
+the answer comes back in the topic where it belongs.
 
-Two live client invitations sat unread on Upwork for half a month. Not because nobody looked, but because there is no single place where work arrives. Upwork, Fiverr, XPlace, Behance, LinkedIn, the site form, four inboxes. Roma OS is the answer to that: one room, one sound, one rule.
+Not a chatbot. An operations layer with hard boundaries, backups and a self-check.
 
+---
 
-## How it works
-
-
-```
-platforms + mail  ->  scheduled agents  ->  filter  ->  Telegram topics  ->  reply ready to send
-```
-
-
-- **Watchers.** Hourly passes over Upwork invitations and messages, Fiverr, XPlace, Behance joblist, LinkedIn and mail, from 08:00 to 23:00 local.
-- **Filter.** Mass agency outreach, no stated budget, no payment verified, no hire history — dropped silently. Silence is a valid answer.
-- **Routing.** One Telegram supergroup, one topic per source and per product: Upwork, Fiverr, XPlace, Behance, LinkedIn, Site Builder, App Builder, Automation Builder, Video Production, Briefing, Billing, Commands.
-- **Signal, not noise.** A red circle means it waits for a human answer and the message is pinned to the top of its topic. Yellow waits but does not burn. Green is information. A thumbs up unpins it.
-- **Voice in.** Commands arrive as voice messages and are transcribed, because that is how the owner actually works.
-- **Never on my behalf.** Agents write the reply, a human presses send. No proposal, no message, no post goes out automatically.
-
-
-## Repository layout
-
+## Architecture
 
 ```
-.github/workflows/   scheduled relay: Telegram in and out, runs on GitHub servers
-docs/                architecture notes and the rules the agents read
+            voice / text
+                 │
+            Telegram  ──────────────  the only control surface
+                 │
+        Cloudflare Tunnel            named tunnel, fixed address
+                 │
+         ┌───────▼────────┐
+         │  own server    │          runs 24/7, no laptop involved
+         │                │
+         │  webhook  ─────┼──► speech-to-text  (local, nothing leaves the box)
+         │     │          │
+         │     ▼          │
+         │  Claude Code ──┼──► executes the task
+         │     │          │
+         │   n8n  ────────┼──► business flows: WhatsApp agent, lead capture, relays
+         │     │          │
+         │  headless Chrome           persistent logged-in browser
+         └─────┬──────────┘
+               │
+     Google Drive ◄──► laptop        two parallel mirrors, not the source of truth
 ```
 
+**Key inversion:** the server is the executor, not a helper. Cloud schedulers and the laptop
+were both removed from the critical path — each was a single point of failure.
 
-Credentials live in repository secrets, never in the tree. No client data, no order content and no personal records are committed here.
+---
 
+## Components
 
-## How this is built
+| Piece | What it does |
+|---|---|
+| **Telegram bridge** | Webhook, not polling. Commands land in under a second. |
+| **Speech-to-text** | whisper.cpp on the server. Voice never leaves the machine and costs nothing per minute. |
+| **Task runner** | Claude Code headless, one task at a time, queued, hard timeout. |
+| **n8n** | Business flows: WhatsApp agent, demo chat, relays, typing keeper. Pinned version. |
+| **Cloudflare Tunnel** | Named tunnel on my own domain. No open inbound ports. |
+| **Scheduled jobs** | Morning brief, evening check, mail watch — systemd timers in local time. |
+| **Mirrors** | Google Drive and the laptop hold copies. Neither is the source of truth. |
+| **Backups** | Nightly, encrypted, verified by test-extract, kept off-box. |
+| **Self-check** | Runs after every reboot, reports itself, stays silent when healthy. |
 
-Every idea, product decision and creative direction here is mine. The code is written in pair with Claude: I design, decide and review, the agent types and tests.
+---
 
-## Status
+## Control surface
 
+The Telegram group is a forum. **One topic per direction**, so nothing lands in a general pile:
 
-In daily use since September 2026.
+- **Marketplaces** — one topic per platform, incoming orders and threads
+- **Products** — one topic per product line, requests from the site
+- **Personal tracks** — long-running matters with deadlines
+- **Commands** — where I speak; everything else is where I read
+- **Server** — reports, self-checks, alarms
 
-# Roma OS
+I send a voice message to Commands. Within a second I see 👀, then *typing…* while it works,
+then the answer as a reply in the same topic.
 
-A one person operations room. Scheduled agents watch every place where paid work appears, filter the noise, and push what is real into a single Telegram control room with a ready reply already written.
+---
 
-## The problem it solves
+## Design decisions worth stating
 
-Two live client invitations sat unread on Upwork for half a month. Not because nobody looked, but because there is no single place where work arrives. Upwork, Fiverr, XPlace, Behance, LinkedIn, the site form, four inboxes. Roma OS is the answer to that: one room, one sound, one rule.
+**Guardrails are configuration, not prompt text.** "Don't do X" written in a prompt is a
+suggestion a model can be talked out of. The real limits live in settings and in code:
+denied domains, denied commands, sender checked before the model ever sees the message.
 
-## How it works
+**The sender check happens outside the model.** Chat and user identity are verified in code,
+before any LLM call. A prompt injection cannot promote itself.
 
-```
-platforms + mail  ->  scheduled agents  ->  filter  ->  Telegram topics  ->  reply ready to send
-```
+**Answer the webhook first, work second.** Telegram retries anything slow, and a retried
+command is a command executed twice.
 
-- **Watchers.** Hourly passes over Upwork invitations and messages, Fiverr, XPlace, Behance joblist, LinkedIn and mail, from 08:00 to 23:00 local.
-- **Filter.** Mass agency outreach, no stated budget, no payment verified, no hire history — dropped silently. Silence is a valid answer.
-- **Routing.** One Telegram supergroup, one topic per source and per product: Upwork, Fiverr, XPlace, Behance, LinkedIn, Site Builder, App Builder, Automation Builder, Video Production, Briefing, Billing, Commands.
-- **Signal, not noise.** A red circle means it waits for a human answer and the message is pinned to the top of its topic. Yellow waits but does not burn. Green is information. A thumbs up unpins it.
-- **Voice in.** Commands arrive as voice messages and are transcribed, because that is how the owner actually works.
-- **Never on my behalf.** Agents write the reply, a human presses send. No proposal, no message, no post goes out automatically.
+**Deletion is not propagated.** Sync refuses to delete rather than mirror a deletion, and
+says so. Overwritten versions are kept. A sync that stops loudly beats one that quietly erases.
 
-## Repository layout
+**Silence is the healthy state.** Jobs report only when something needs a human. Quiet hours
+hold everything overnight and deliver one message in the morning. A system that pings all
+night gets muted, and a muted system is worse than none.
 
-```
-.github/workflows/   scheduled relay: Telegram in and out, runs on GitHub servers
-docs/                architecture notes and the rules the agents read
-```
+**Verify by reboot, not by inspection.** Everything looked correctly configured for autostart.
+An actual reboot found a dependency cycle that had silently kept a whole service group down.
 
-Credentials live in repository secrets, never in the tree. No client data, no order content and no personal records are committed here.
+---
 
-## Status
+## Security posture
 
-In daily use since September 2026.
+- Secrets live outside the repository and outside synced folders. Nothing sensitive is committed.
+- Tokens are never passed as command arguments — they would be visible in the process list.
+- No inbound ports open to the internet beyond SSH; internal services are reachable only
+  over a private network.
+- Backup archives are encrypted; the passphrase is held separately from the backups.
+- Client data and personal records are not in this repository and never will be.
+
+---
+
+## What this is not
+
+Not a product, not a framework, not for sale. It is one person's operations system, published
+because the architecture is more interesting than the code, and because most write-ups of
+"personal AI assistants" stop at the demo and never mention backups, reboots or what happens
+at three in the morning.
