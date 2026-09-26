@@ -4,7 +4,8 @@ The public one-page map of Roma OS: what runs by itself, what waits for Roma, an
 client can order. It lives as a claude.ai artifact; this folder is its source.
 
 - Live page: https://claude.ai/artifact/R5Qjar8hx7zmp4ZSt8dHHm
-- Current banner: v17 (see `CHANGELOG.md`)
+- Current banner: v17 (see the root `CHANGELOG.md`)
+- What each automation does, in prose: `docs/automation-map.md`
 
 ---
 
@@ -15,7 +16,8 @@ client can order. It lives as a claude.ai artifact; this folder is its source.
 - `banner_3168x792.png` — the map image on the page: the banner at 2×, byte-identical to the one in `page.html`.
 - `banner_1584x396.png` — the LinkedIn banner, 1×.
 - `banner_1400x350.png` — Lanczos downscale of the LinkedIn banner.
-- `CHANGELOG.md` — one line per change, newest first.
+
+Changes go to the repo's root `CHANGELOG.md`.
 
 ---
 
@@ -58,7 +60,7 @@ The LinkedIn banner changes only after Roma says so.
 
 ## Republishing
 
-1. Edit `page.html` here, add the `CHANGELOG.md` line, commit as `map: <what changed>`.
+1. Edit `page.html` here, add a line to the root `CHANGELOG.md`, commit as `map: <what changed>`.
 2. Read the live page with the Artifact tool first (a publish to an artifact not read in the
    session is refused), then publish `docs/automation-map/page.html` with
    `url: https://claude.ai/artifact/R5Qjar8hx7zmp4ZSt8dHHm`.
