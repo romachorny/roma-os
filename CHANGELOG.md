@@ -2,6 +2,10 @@
 
 ## 2026-09-26
 
+- **Where a spec lives.** A spec the server works from now has one home: a repo or Google Drive.
+  A claude.ai artifact is a showcase, never a source. Written into `CLAUDE.md` here and into the
+  server's own CLAUDE.md next to rule 02, after a task pointed at a file that did not exist and
+  at a protocol the server could not open.
 - **WhatsApp sales agent: eight services from one registry.** `services.json` is the single source
   of truth for names, delivery times and starting prices; the site and the agent read the same
   file. Added Learn Claude and Build my OS. Asked what we do, the agent now lists all eight,
