@@ -11,9 +11,10 @@ client can order. It lives as a claude.ai artifact; this folder is its source.
 ## Files
 
 - `page.html` — the page as published. The artifact service adds the `<html>`/`<head>` wrapper,
-  so this is the body only. The banner is embedded in it as a base64 PNG.
-- `banner_1584x396.png` — the banner at LinkedIn size, byte-identical to the image in `page.html`.
-- `banner_1400x350.png` — Lanczos downscale of the same banner.
+  so this is the body only. The map image is embedded in it as a base64 PNG.
+- `banner_3168x792.png` — the map image on the page: the banner at 2×, byte-identical to the one in `page.html`.
+- `banner_1584x396.png` — the LinkedIn banner, 1×.
+- `banner_1400x350.png` — Lanczos downscale of the LinkedIn banner.
 - `CHANGELOG.md` — one line per change, newest first.
 
 ---
@@ -62,8 +63,8 @@ The LinkedIn banner changes only after Roma says so.
    session is refused), then publish `docs/automation-map/page.html` with
    `url: https://claude.ai/artifact/R5Qjar8hx7zmp4ZSt8dHHm`.
 
-A new banner comes only after Roma says so. Replace `banner_1584x396.png`, then rebuild the
-1400 × 350 copy and re-embed the banner in `page.html` from the repo root:
+A new banner comes only after Roma says so. Replace `banner_1584x396.png` and `banner_3168x792.png`,
+then rebuild the 1400 × 350 copy and re-embed the 2× image in `page.html` from the repo root:
 
 ```python
 import base64, re
@@ -71,7 +72,7 @@ from PIL import Image
 
 d = "docs/automation-map/"
 Image.open(d + "banner_1584x396.png").resize((1400, 350), Image.Resampling.LANCZOS).save(d + "banner_1400x350.png", optimize=True)
-b64 = base64.b64encode(open(d + "banner_1584x396.png", "rb").read()).decode()
+b64 = base64.b64encode(open(d + "banner_3168x792.png", "rb").read()).decode()
 page = open(d + "page.html", encoding="utf-8").read()
 page = re.sub(r"data:image/png;base64,[A-Za-z0-9+/=]+", lambda _: "data:image/png;base64," + b64, page, count=1)
 open(d + "page.html", "w", encoding="utf-8").write(page)
