@@ -6,6 +6,12 @@ Everything here executes on the server. Google Drive and the laptop hold mirrors
 history; none of the three is the source of truth. The one deliberate exception is the site
 watchdog, which lives outside the box on purpose.
 
+**The site deploys from roma-server; the laptop is a mirror.** genvidpro.com is published by
+`ops/deploy.sh` in the server's own working tree: guards, commit, build the publish set with
+`functions/` at its root, `wrangler pages deploy`, live checks, push. The laptop no longer
+deploys. Before any deploy the tree is diffed against the live site, because a tree older than
+live would silently roll the site back.
+
 ---
 
 ## WhatsApp sales agent

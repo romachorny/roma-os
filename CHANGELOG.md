@@ -2,6 +2,10 @@
 
 ## 2026-09-26
 
+- **Site deploys from roma-server, the laptop is a mirror.** The site source now lives in the
+  server's own tree; `ops/deploy.sh` publishes genvidpro.com end to end and `ops/drift-check.sh`
+  refuses to deploy a tree that is older than live. Proved by changing one delivery time,
+  deploying, watching the live agent quote it in four languages, and reverting the same way.
 - **Where a spec lives.** A spec the server works from now has one home: a repo or Google Drive.
   A claude.ai artifact is a showcase, never a source. Written into `CLAUDE.md` here and into the
   server's own CLAUDE.md next to rule 02, after a task pointed at a file that did not exist and
