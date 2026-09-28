@@ -1,5 +1,16 @@
 name: site-watch
 
+# Внешний сторож Roma OS. Живёт вне сервера намеренно: если сервер умрёт,
+# он один и сообщит. Смотрит два разных признака:
+#   1) сайт genvidpro.com отвечает 200;
+#   2) сам сервер жив — маячок за Tailscale Funnel отдаёт строку "roma-server-alive".
+# Адрес маячка и личный чат Ромы лежат в секретах репозитория: репозиторий публичный.
+#
+# Честно про частоту: в файле стоит */20, но планировщик GitHub режет частый cron
+# и на деле запускает раз в 3–6 часов (проверено 27–28.09.2026). Значит, это сторож
+# «раз в несколько часов», а не «раз в 20 минут». Частый сторож ставится отдельно,
+# вне GitHub.
+
 on:
   schedule:
     - cron: '*/20 * * * *'
@@ -10,27 +21,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Probe genvidpro.com
-        id: probe
+        id: site
         run: |
           code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 https://genvidpro.com/ || echo 000)
           echo "code=$code" >> $GITHUB_OUTPUT
           echo "Site answered $code"
 
+      - name: Probe the server heartbeat
+        id: beacon
+        env:
+          BEACON_URL: ${{ secrets.BEACON_URL }}
+        run: |
+          alive=no
+          for i in 1 2 3; do
+            body=$(curl -s -m 20 "$BEACON_URL" || true)
+            case "$body" in
+              roma-server-alive*) alive=yes; break ;;
+            esac
+            sleep 20
+          done
+          echo "alive=$alive" >> $GITHUB_OUTPUT
+          echo "Server alive: $alive"
+
       - name: Alert Telegram if the site is down
-        if: steps.probe.outputs.code != '200'
+        if: steps.site.outputs.code != '200'
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          CODE: ${{ steps.probe.outputs.code }}
+          CODE: ${{ steps.site.outputs.code }}
         run: |
           curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -H 'Content-Type: application/json' \
             -d "{\"chat_id\":-1004359830446,\"message_thread_id\":7,\"text\":\"🔴 genvidpro.com не отвечает, код $CODE. Проверь Cloudflare Pages.\"}"
 
-      - name: Confirm on manual run
-        if: github.event_name == 'workflow_dispatch' && steps.probe.outputs.code == '200'
+      # Смерть сервера идёт в личный чат: темы группы Рома глушит, личку нет.
+      - name: Alert Roma in DM if the server is dead
+        if: steps.beacon.outputs.alive != 'yes'
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_OWNER: ${{ secrets.TG_OWNER }}
         run: |
           curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
             -H 'Content-Type: application/json' \
-            -d '{"chat_id":-1004359830446,"message_thread_id":7,"text":"🟢 Робот GitHub на связи. Сайт отвечает 200. Дальше проверяю каждые 20 минут сам, компьютер для этого не нужен."}'
+            -d "{\"chat_id\":\"$TG_OWNER\",\"text\":\"🔴 roma-server не отвечает: маячок живости молчит три раза подряд. Говорит внешний сторож GitHub — он вне сервера, поэтому слышен, даже когда сервер мёртв.\"}"
+
+      - name: Confirm on manual run
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          CODE: ${{ steps.site.outputs.code }}
+          ALIVE: ${{ steps.beacon.outputs.alive }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            -H 'Content-Type: application/json' \
+            -d "{\"chat_id\":-1004359830446,\"message_thread_id\":7,\"text\":\"🟢 Внешний сторож GitHub на связи. Сайт: код $CODE. Сервер: живой=$ALIVE.\"}"
