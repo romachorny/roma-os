@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-28
+
+- **The watchdog now watches the server, not just the site.** The server answers a heartbeat on
+  one public path ("alive", uptime, load — nothing else), and the external GitHub job checks it
+  three times before it speaks. A dead server goes to the private chat; a group topic can be
+  muted. Honest about cadence: GitHub runs the schedule once every few hours, not every twenty
+  minutes, so a fast watchdog is still owed and needs a Cloudflare token that may edit Workers.
+
 ## 2026-09-26
 
 - **Site deploys from roma-server, the laptop is a mirror.** The site source now lives in the

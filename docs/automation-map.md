@@ -96,8 +96,13 @@ than none.
 ## Site watchdog
 
 The one automation that deliberately does not run on the server: a GitHub Actions job checks the
-site every twenty minutes. Anything that checks whether the server is alive has to live somewhere
-else, or it dies with it.
+site and, since 28.09.2026, the server itself. The server answers a heartbeat on one public path
+and says nothing but "alive" — the site can answer 200 from the cache while the box behind it is
+dead, so one signal was never enough. A dead server is reported to the private chat, not to a
+group topic that can be muted. The schedule in the file says twenty minutes; GitHub's scheduler
+really runs it once every few hours, so this is the slow watchdog, and a fast one belongs
+somewhere else again. Anything that checks whether the server is alive has to live outside it,
+or it dies with it.
 
 ---
 
